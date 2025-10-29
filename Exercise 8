@@ -1,0 +1,68 @@
+from heapq import heappush, heappop
+import time
+
+GOAL = (1,2,3,4,5,6,7,8,0)
+NEI = {0:[1,3],1:[0,2,4],2:[1,5],3:[0,4,6],4:[1,3,5,7],5:[2,4,8],6:[3,7],7:[4,6,8],8:[5,7]}
+
+def h_misplaced(s):
+    return sum(1 for i,t in enumerate(s) if t!=0 and t!=GOAL[i])
+
+def h_manhattan(s):
+    d=0
+    for i,t in enumerate(s):
+        if t!=0:
+            gi=t-1
+            d+=abs(i//3-gi//3)+abs(i%3-gi%3)
+    return d
+
+def h_conflict(s):
+    base=h_manhattan(s)
+    add=0
+    for r in range(3):
+        row=s[3*r:3*r+3]
+        for i in range(3):
+            for j in range(i+1,3):
+                a=row[i];b=row[j]
+                if a and b and (a-1)//3==r and (b-1)//3==r and a>b:
+                    add+=2
+    for c in range(3):
+        col=s[c::3]
+        for i in range(3):
+            for j in range(i+1,3):
+                a=col[i];b=col[j]
+                if a and b and (a-1)%3==c and (b-1)%3==c and a>b:
+                    add+=2
+    return base+add
+
+def astar(start, h):
+    t0=time.perf_counter()
+    openQ=[]; heappush(openQ,(h(start),0,start))
+    best_g={start:0}
+    expanded=0
+    while openQ:
+        f,g,s = heappop(openQ)
+        if s==GOAL:
+            return {"time":time.perf_counter()-t0,"expanded":expanded}
+        expanded+=1
+        z=s.index(0)
+        for nz in NEI[z]:
+            lst=list(s); lst[z],lst[nz]=lst[nz],lst[z]; nxt=tuple(lst)
+            ng=g+1
+            if ng < best_g.get(nxt,1e18):
+                best_g[nxt]=ng
+                heappush(openQ,(ng+h(nxt),ng,nxt))
+    return {"time":time.perf_counter()-t0,"expanded":expanded}
+
+INIT_STATES=[
+    (1,2,3,4,5,6,7,0,8),
+    (1,2,3,4,5,6,0,7,8),
+    (1,2,3,4,5,6,8,7,0),
+    (8,6,7,2,5,4,3,0,1),
+    (3,1,2,4,5,6,7,8,0),
+]
+
+for s in INIT_STATES:
+    print("\nSTATE",s)
+    for name,h in [("mis",h_misplaced),("man",h_manhattan),("conf",h_conflict)]:
+        r = astar(s,h)
+        print(f"  {name}: time={r['time']:.6f}s expanded={r['expanded']}")
