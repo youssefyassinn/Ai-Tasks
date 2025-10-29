@@ -1,0 +1,90 @@
+from collections import deque
+import heapq
+
+maze = [
+    [1,1,0,1,1,1,0,1,1,1],
+    [0,1,0,1,0,1,1,0,1,0],
+    [1,1,1,1,0,1,0,1,1,1],
+    [1,0,1,0,1,1,0,1,0,1],
+    [1,0,1,1,1,0,1,1,0,1],
+    [1,1,0,0,1,0,1,0,1,1],
+    [0,1,1,0,1,1,1,0,1,0],
+    [1,0,1,1,1,0,1,1,1,1],
+    [1,0,0,0,1,1,0,0,0,1],
+    [1,1,1,1,1,0,1,1,1,1]
+]
+
+start = (0,0)
+goal = (9,9)
+moves = [(-1,0),(1,0),(0,-1),(0,1)]
+
+def bfs(maze,start,goal):
+    q=deque([(start,[start])])
+    visited=set([start])
+    visited_count=0
+    max_frontier=1
+    while q:
+        max_frontier=max(max_frontier,len(q))
+        (x,y),path=q.popleft()
+        visited_count+=1
+        if (x,y)==goal:
+            return path,visited_count,max_frontier
+        for dx,dy in moves:
+            nx,ny=x+dx,y+dy
+            if 0<=nx<len(maze) and 0<=ny<len(maze[0]):
+                if maze[nx][ny]==1 and (nx,ny) not in visited:
+                    visited.add((nx,ny))
+                    q.append(((nx,ny),path+[(nx,ny)]))
+    return None,None,None
+
+def astar(maze,start,goal):
+    def h(a,b):return abs(a[0]-b[0])+abs(a[1]-b[1])
+    open=[]
+    heapq.heappush(open,(0,start,[start]))
+    g={start:0}
+    visited=set()
+    visited_count=0
+    max_frontier=1
+    while open:
+        max_frontier=max(max_frontier,len(open))
+        f,(x,y),path=heapq.heappop(open)
+        if (x,y) in visited:continue
+        visited.add((x,y))
+        visited_count+=1
+        if (x,y)==goal:
+            return path,visited_count,max_frontier
+        for dx,dy in moves:
+            nx,ny=x+dx,y+dy
+            if 0<=nx<len(maze) and 0<=ny<len(maze[0]) and maze[nx][ny]==1:
+                ng=g[(x,y)]+1
+                if (nx,ny) not in g or ng<g[(nx,ny)]:
+                    g[(nx,ny)]=ng
+                    heapq.heappush(open,(ng+h((nx,ny),goal),(nx,ny),path+[(nx,ny)]))
+    return None,None,None
+
+def draw_path(maze,path):
+    m=[row[:] for row in maze]
+    sx,sy=start
+    gx,gy=goal
+    for x,y in path:
+        if (x,y)!=start and (x,y)!=goal:
+            m[x][y]='*'
+    m[sx][sy]='S'
+    m[gx][gy]='E'
+    for r in m:
+        print(" ".join(str(c) for c in r))
+
+bfs_path,bv,bs=bfs(maze,start,goal)
+astar_path,av,as_=astar(maze,start,goal)
+
+print("=== BFS ===")
+print("path length:",len(bfs_path)-1)
+print("visited:",bv)
+print("max frontier:",bs)
+draw_path(maze,bfs_path)
+
+print("\n=== A* ===")
+print("path length:",len(astar_path)-1)
+print("visited:",av)
+print("max frontier:",as_)
+draw_path(maze,astar_path)
